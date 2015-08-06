@@ -6,7 +6,10 @@ package com.jing.Service;
 
 import com.jing.Model.Person;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
+import org.springframework.data.redis.core.RedisOperations;
 import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.core.SessionCallback;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.support.atomic.RedisAtomicLong;
 import org.springframework.stereotype.Service;
@@ -27,20 +30,29 @@ public class PeopleService {
         this.template = template;
 
 
-       userIdCounter = new RedisAtomicLong("uid", template.getConnectionFactory());
+        userIdCounter = new RedisAtomicLong("uid", template.getConnectionFactory());
     }
 
-    public String addPeople(Person person)
-    {
-        String uid = String.valueOf(userIdCounter.incrementAndGet());
-        template.opsForValue().set(KeyHelper.getUser(uid), person.getName());
-        template.opsForList().leftPushAll(KeyHelper.getUser(uid), person.getAddresses());
-        return uid;
+    public Person addPeople(final Person person) {
+        final String uid = String.valueOf(userIdCounter.incrementAndGet());
+        //System.out.println(uid);
+        //template.opsForValue().set(KeyHelper.getUser(uid), person.getName());
+        //template.opsForList().leftPushAll(KeyHelper.getAddress(uid), person.getAddresses().toArray(new String[person.getAddresses().size()]));
+        List<Object> results = template.execute(new SessionCallback<List<Object>>() {
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            public List<Object> execute(RedisOperations operations) throws DataAccessException {
+                operations.multi();
+                operations.opsForValue().set(KeyHelper.getUser(uid), person.getName());
+                operations.opsForList().leftPushAll(KeyHelper.getAddress(uid), person.getAddresses().toArray(new String[person.getAddresses().size()]));
+                return operations.exec();
+            }
+        });
+        person.setUid(uid);
+        return person;
 
     }
 
-    public Person getPerson(String key)
-    {
+    public Person getPerson(String key) {
         String existingRecord = (String) template.opsForValue().get(KeyHelper.getUser(key));
         if (existingRecord == null) {
             return null;
@@ -50,33 +62,55 @@ public class PeopleService {
         List<String> addresses = new ArrayList<String>();
         addresses = template.boundListOps(KeyHelper.getAddress(key)).range(0, template.boundListOps(KeyHelper.getAddress(key)).size());
         person.setAddresses(addresses);
+        person.setUid(key);
         return person;
 
-    };
+    }
+
+    ;
 
 
-    public String updatePerson(String key, Person person)
-    {
-
+    public Person updatePerson(final Person person) {
+        final String key = person.getUid();
         String existingRecord = (String) template.opsForValue().get(KeyHelper.getUser(key));
         if (existingRecord == null) {
             return null;
         }
-        template.opsForValue().set(KeyHelper.getUser(key), person.getName());
-        template.boundListOps(KeyHelper.getAddress(key)).trim(0, template.boundListOps(KeyHelper.getAddress(key)).size());
-        template.opsForList().leftPushAll(KeyHelper.getUser(key), person.getAddresses());
+        System.out.println("key found, updating");
+        List<Object> results = template.execute(new SessionCallback<List<Object>>() {
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            public List<Object> execute(RedisOperations operations) throws DataAccessException {
+                operations.multi();
+                operations.opsForValue().set(KeyHelper.getUser(key), person.getName());
+                operations.delete(KeyHelper.getAddress(key));
+                operations.opsForList().leftPushAll(KeyHelper.getAddress(key), person.getAddresses().toArray(new String[person.getAddresses().size()]));
+                return operations.exec();
+            }
+        });
 
-        return key;
+        return person;
 
     }
-    public String removePerson(String key)
-    {
+
+    public Person removePerson(final String key) {
         String existingRecord = (String) template.opsForValue().get(KeyHelper.getUser(key));
         if (existingRecord == null) {
             return null;
         }
-        template.delete(KeyHelper.getUser(key));
-        template.delete(KeyHelper.getAddress(key));
-        return key;
+
+        List<Object> results = template.execute(new SessionCallback<List<Object>>() {
+            @SuppressWarnings({"rawtypes", "unchecked"})
+            public List<Object> execute(RedisOperations operations) throws DataAccessException {
+                operations.multi();
+                operations.delete(KeyHelper.getUser(key));
+                operations.delete(KeyHelper.getAddress(key));
+                return operations.exec();
+            }
+        });
+
+
+        Person person = new Person();
+        person.setUid(key);
+        return person;
     }
 }

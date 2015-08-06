@@ -6,12 +6,11 @@ package com.jing.Service;
 public class KeyHelper {
 
 
-    public static String getUser(String uid)
-    {
-        return "usr"  + uid;
+    public static String getUser(String uid) {
+        return "usr" + uid;
     }
-    public static String getAddress(String uid)
-    {
+
+    public static String getAddress(String uid) {
         return "addr" + uid;
     }
 }

@@ -11,17 +11,33 @@ public class Person implements Serializable {
 
     private String name;
     private List<String> addresses;
+    private String uid;
 
-    public String getName() { return name ;} ;
-    public List<String> getAddresses() { return addresses;}
+    public String getName() {
+        return name;
+    }
 
-    public void setName(String name)
-    {
+    ;
+
+    public List<String> getAddresses() {
+        return addresses;
+    }
+
+    public String getUid() {
+        return uid;
+    }
+
+    public void setName(String name) {
         this.name = name;
     }
 
-    public void setAddresses(List<String> addresses)
-    {
+    public void setUid(String uid) {
+        this.uid = uid;
+    }
+
+    ;
+
+    public void setAddresses(List<String> addresses) {
         this.addresses = new ArrayList<String>();
         this.addresses = addresses;
     }
