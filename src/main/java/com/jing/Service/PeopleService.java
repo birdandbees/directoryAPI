@@ -35,9 +35,7 @@ public class PeopleService {
 
     public Person addPeople(final Person person) {
         final String uid = String.valueOf(userIdCounter.incrementAndGet());
-        //System.out.println(uid);
-        //template.opsForValue().set(KeyHelper.getUser(uid), person.getName());
-        //template.opsForList().leftPushAll(KeyHelper.getAddress(uid), person.getAddresses().toArray(new String[person.getAddresses().size()]));
+
         List<Object> results = template.execute(new SessionCallback<List<Object>>() {
             @SuppressWarnings({"rawtypes", "unchecked"})
             public List<Object> execute(RedisOperations operations) throws DataAccessException {
@@ -113,4 +111,14 @@ public class PeopleService {
         person.setUid(key);
         return person;
     }
+
+    public List<Person> addFamily(final List<Person> family) {
+        List<Person> result = new ArrayList<>();
+        for (Person person : family) {
+            result.add(addPeople(person));
+        }
+        return result;
+
+    }
+
 }

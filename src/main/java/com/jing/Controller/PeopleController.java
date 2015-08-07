@@ -4,11 +4,14 @@ package com.jing.Controller;
  * Created by jingjing on 8/2/15.
  */
 
+import com.jing.Model.Family;
 import com.jing.Model.Person;
 import com.jing.Service.PeopleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @Controller
 public class PeopleController {
@@ -47,6 +50,15 @@ public class PeopleController {
     @ResponseBody
     Person removeId(@RequestParam(value = "id", required = true) final String id) {
         return (service.removePerson(id));
+
+
+    }
+
+    @RequestMapping(method = RequestMethod.POST, value = "/addFamily", headers = {"Content-type=application/json"})
+    public
+    @ResponseBody
+    List<Person> add(@RequestBody Family family) {
+        return (service.addFamily(family.getFamily()));
 
 
     }
